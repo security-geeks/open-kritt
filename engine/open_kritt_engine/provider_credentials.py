@@ -5,10 +5,13 @@ import uuid
 from collections.abc import Mapping
 from pathlib import Path
 
+from .account_activity import filter_account_environment, read_account_activity
+
 DEFAULT_PROVIDER_CREDENTIALS_PATH = "/credentials/providers.json"
 PROVIDER_ENV_KEYS = {
     "openrouter": "OPENROUTER_API_KEY",
     "xai": "XAI_API_KEY",
+    "deepseek": "DEEPSEEK_API_KEY",
 }
 MAX_CREDENTIAL_FILE_BYTES = 1024 * 1024
 _CREDENTIAL_WRITE_LOCK = threading.Lock()
@@ -39,6 +42,7 @@ JOB_PROVIDER_ENV_KEYS = {
     "claude": frozenset({"ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL"}),
     "openrouter": frozenset({"OPENROUTER_API_KEY"}),
     "xai": frozenset({"XAI_API_KEY"}),
+    "deepseek": frozenset({"DEEPSEEK_API_KEY"}),
 }
 JOB_HARNESS_ENV_KEYS = {
     "cursor": frozenset({"CURSOR_API_KEY", "CURSOR_AUTH_TOKEN", "CURSOR_AGENT_BIN"}),
@@ -124,7 +128,7 @@ def provider_environment(source: Mapping[str, str] | None = None) -> dict[str, s
         env[PROVIDER_ENV_KEYS[provider]] = value
     if not env.get("CODEX_API_KEY") and env.get("OPENAI_API_KEY"):
         env["CODEX_API_KEY"] = env["OPENAI_API_KEY"]
-    return env
+    return filter_account_environment(env, read_account_activity(env))
 
 
 def job_environment(
